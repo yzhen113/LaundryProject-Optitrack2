@@ -446,17 +446,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4d889f552a9a484f9aacfbd013fad56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sceneFlow: 1
   firstPersonPrefab: {fileID: 5241267463746980526, guid: f2e0b7ae4dae8cf44955bccd3512b213, type: 3}
   tableHalfExtentX: 4
   tableHalfExtentZ: 2
   tableTopY: 0
   seatInset: 0.35
   seatedHostSeatIndex: 0
+  standingZoneHalfExtentX: 0.55
+  standingZoneHalfExtentZ: 0.55
+  hostZoneColor: {r: 0.28, g: 0.72, b: 0.95, a: 0.95}
+  guestZoneColor: {r: 0.95, g: 0.62, b: 0.28, a: 0.95}
   handPreviewSeconds: 2.1
   jumpToSeatSeconds: 1.15
   demoCountdownSeconds: 16
+  creatureTableOffsetFromPlayerMeters: 0.75
+  creatureFollowPlayerBlend: 0.06
   guestWasherNumber: 3
   guestDryerNumber: 4
+  enableCreatureBumpInteraction: 0
+  bumpDelayAfterBothStandingSeconds: 0.35
+  bumpAutoDistanceToTouch: 1
+  bumpRingExitPaddingMeters: 0.06
+  bumpTravelScale: 1
+  bumpCoreTravelMeters: 0.35
+  bumpDurationSeconds: 8
+  projectionMainCameraCreaturesOnly: 0
+  creatureProjectionLayerName: CreatureProjection
+  projectionTransparentClearColor: 0
+  restartBumpInteractionKey: 114
+  enableRestartBumpHotkey: 1
+  restartBumpSkipsDelay: 1
 --- !u!4 &1877558580
 Transform:
   m_ObjectHideFlags: 0

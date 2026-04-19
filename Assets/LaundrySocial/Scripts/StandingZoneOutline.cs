@@ -55,6 +55,7 @@ public class StandingZoneOutline : MonoBehaviour
         m_lr.SetPosition(2, c + new Vector3(hx, 0f, hz));
         m_lr.SetPosition(3, c + new Vector3(-hx, 0f, hz));
         m_lr.SetPosition(4, c + new Vector3(-hx, 0f, -hz));
+        m_lr.widthMultiplier = lineWidth;
         m_lr.startColor = m_lr.endColor = lineColor;
     }
 

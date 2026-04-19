@@ -8,6 +8,7 @@ public class LaundrySocialBumpSceneRoot : LaundrySocialSceneRoot
 {
     protected override void Awake()
     {
+        sceneFlow = LaundrySocialSceneFlowKind.StandingZonesBumpOnly;
         enableCreatureBumpInteraction = true;
         base.Awake();
     }

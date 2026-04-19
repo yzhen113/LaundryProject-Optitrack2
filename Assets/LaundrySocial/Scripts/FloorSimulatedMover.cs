@@ -29,6 +29,18 @@ public class FloorSimulatedMover : MonoBehaviour
         ApplyMode(simulated);
     }
 
+    /// <summary>
+    /// Stops <see cref="FixedUpdate"/> from writing horizontal velocity (for OptiTrack / external motion).
+    /// Unlike <see cref="SetSimulated"/>(false), does not re-enable first-person keyboard/mouse scripts.
+    /// </summary>
+    public void DisableKeyboardFloorDrive()
+    {
+        simulateOnAwake = false;
+        if (m_move != null) m_move.enabled = false;
+        foreach (var l in m_looks)
+            if (l != null) l.enabled = false;
+    }
+
     void ApplyMode(bool simulated)
     {
         if (m_move != null) m_move.enabled = !simulated;
