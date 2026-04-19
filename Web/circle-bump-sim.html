@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2D ball–ball collision (basketball-like)</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --panel: #252a33;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #6c9eef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p.lead {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      max-width: 42rem;
+      text-align: center;
+      line-height: 1.45;
+    }
+    .wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(180deg, #2a3140 0%, #1e232d 100%);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.45);
+      touch-action: none;
+    }
+    .panel {
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      min-width: 260px;
+      max-width: 320px;
+      font-size: 0.82rem;
+    }
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.65rem;
+    }
+    label span.val { color: var(--accent); font-variant-numeric: tabular-nums; min-width: 3rem; text-align: right; }
+    input[type="range"] { flex: 1; max-width: 140px; }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    button {
+      background: #3d4a5c;
+      color: var(--text);
+      border: none;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    button:hover { background: #4a5a70; }
+    button.primary { background: var(--accent); color: #111; }
+    button.primary:hover { filter: brightness(1.08); }
+    .note {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #3a4248;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.45;
+    }
+    code { font-size: 0.9em; color: #b8c5d6; }
+  </style>
+</head>
+<body>
+  <h1>Circle–circle bounce (physics preview)</h1>
+  <p class="lead">
+    Two rigid disks with mass ∝ area. Gravity, floor contact, and ball–ball collisions use
+    impulse–momentum with restitution (real basketballs are ~0.75–0.85 on hardwood; tune below).
+  </p>
+  <div class="wrap">
+    <canvas id="c" width="720" height="420" aria-label="Simulation"></canvas>
+    <div class="panel">
+      <h2>Material</h2>
+      <label>Ball vs ball <code>e</code> <span class="val" id="ebbVal">0.82</span></label>
+      <input type="range" id="ebb" min="0.5" max="0.98" step="0.01" value="0.82" />
+      <label>Ball vs floor <code>e</code> <span class="val" id="efVal">0.78</span></label>
+      <input type="range" id="ef" min="0.3" max="0.95" step="0.01" value="0.78" />
+      <label>Air drag <span class="val" id="dragVal">0.002</span></label>
+      <input type="range" id="drag" min="0" max="0.015" step="0.0005" value="0.002" />
+      <label>Friction (floor) <span class="val" id="muVal">0.18</span></label>
+      <input type="range" id="mu" min="0" max="0.45" step="0.01" value="0.18" />
+      <h2 style="margin-top:1rem">Scene</h2>
+      <label>Gravity <span class="val" id="gVal">980</span></label>
+      <input type="range" id="grav" min="200" max="1600" step="20" value="980" />
+      <div class="btn-row">
+        <button type="button" class="primary" id="reset">Reset &amp; toss</button>
+        <button type="button" id="pause">Pause</button>
+      </div>
+      <div class="note">
+        <strong>Model:</strong> semi-implicit Euler; overlap resolution; impulse
+        <code>j = −(1+e) v<sub>rel</sub>·n̂ / (1/m₁ + 1/m₂)</code> along contact normal.
+        Masses scale with radius² (same density).
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const ebbInput = document.getElementById('ebb');
+  const efInput = document.getElementById('ef');
+  const dragInput = document.getElementById('drag');
+  const muInput = document.getElementById('mu');
+  const gravInput = document.getElementById('grav');
+
+  let eBallBall = parseFloat(ebbInput.value);
+  let eFloor = parseFloat(efInput.value);
+  let linearDrag = parseFloat(dragInput.value);
+  let mu = parseFloat(muInput.value);
+  let g = parseFloat(gravInput.value);
+
+  function syncLabels() {
+    document.getElementById('ebbVal').textContent = ebbInput.value;
+    document.getElementById('efVal').textContent = efInput.value;
+    document.getElementById('dragVal').textContent = dragInput.value;
+    document.getElementById('muVal').textContent = muInput.value;
+    document.getElementById('gVal').textContent = gravInput.value;
+  }
+  ebbInput.addEventListener('input', () => { eBallBall = parseFloat(ebbInput.value); syncLabels(); });
+  efInput.addEventListener('input', () => { eFloor = parseFloat(efInput.value); syncLabels(); });
+  dragInput.addEventListener('input', () => { linearDrag = parseFloat(dragInput.value); syncLabels(); });
+  muInput.addEventListener('input', () => { mu = parseFloat(muInput.value); syncLabels(); });
+  gravInput.addEventListener('input', () => { g = parseFloat(gravInput.value); syncLabels(); });
+  syncLabels();
+
+  const rho = 1;
+  const floorY = H - 36;
+
+  function makeBall(x, y, r, hue) {
+    const m = rho * Math.PI * r * r;
+    return {
+      x, y, vx: 0, vy: 0, r, m, hue,
+      trail: []
+    };
+  }
+
+  let balls = [
+    makeBall(W * 0.28, floorY - 120, 38, 24),
+    makeBall(W * 0.72, floorY - 95, 34, 200)
+  ];
+
+  function resetScene() {
+    balls = [
+      makeBall(W * 0.22 + Math.random() * 40, floorY - 180 - Math.random() * 40, 38, 24),
+      makeBall(W * 0.78 - Math.random() * 40, floorY - 140 - Math.random() * 50, 34, 200)
+    ];
+    balls[0].vx = 280 + Math.random() * 120;
+    balls[0].vy = -80 - Math.random() * 100;
+    balls[1].vx = -260 - Math.random() * 120;
+    balls[1].vy = -60 - Math.random() * 40;
+  }
+
+  document.getElementById('reset').addEventListener('click', resetScene);
+  let paused = false;
+  document.getElementById('pause').addEventListener('click', function () {
+    paused = !paused;
+    this.textContent = paused ? 'Resume' : 'Pause';
+  });
+
+  resetScene();
+
+  function resolveBallBall(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    let dist = Math.hypot(dx, dy);
+    const minDist = a.r + b.r;
+    if (dist < 1e-6) return;
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    if (dist < minDist) {
+      const overlap = minDist - dist;
+      const inv = 1 / (a.m + b.m);
+      a.x -= nx * overlap * (b.m * inv);
+      a.y -= ny * overlap * (b.m * inv);
+      b.x += nx * overlap * (a.m * inv);
+      b.y += ny * overlap * (a.m * inv);
+      dist = minDist;
+    }
+
+    const rvx = b.vx - a.vx;
+    const rvy = b.vy - a.vy;
+    const velAlongN = rvx * nx + rvy * ny;
+    if (velAlongN >= 0) return;
+
+    const invMassSum = 1 / a.m + 1 / b.m;
+    const j = -(1 + eBallBall) * velAlongN / invMassSum;
+    const jx = j * nx;
+    const jy = j * ny;
+    a.vx -= jx / a.m;
+    a.vy -= jy / a.m;
+    b.vx += jx / b.m;
+    b.vy += jy / b.m;
+  }
+
+  function resolveBallFloor(b) {
+    if (b.y + b.r <= floorY) return;
+    b.y = floorY - b.r;
+    const vn = b.vy;
+    if (vn > 0) {
+      b.vy = -eFloor * vn;
+      const maxFriction = mu * Math.abs(vn);
+      const sign = Math.sign(b.vx) || 1;
+      const reduce = Math.min(Math.abs(b.vx), maxFriction * 0.9);
+      b.vx -= sign * reduce;
+    }
+  }
+
+  function walls(b) {
+    if (b.x - b.r < 0) {
+      b.x = b.r;
+      b.vx *= -eFloor * 0.85;
+    }
+    if (b.x + b.r > W) {
+      b.x = W - b.r;
+      b.vx *= -eFloor * 0.85;
+    }
+  }
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+
+    if (!paused) {
+      for (let s = 0; s < 4; s++) {
+        const hdt = dt / 4;
+        for (const b of balls) {
+          b.vy += g * hdt;
+          b.vx *= 1 - linearDrag;
+          b.vy *= 1 - linearDrag;
+          b.x += b.vx * hdt;
+          b.y += b.vy * hdt;
+        }
+        resolveBallBall(balls[0], balls[1]);
+        for (const b of balls) {
+          resolveBallFloor(b);
+          walls(b);
+        }
+      }
+    }
+
+    for (const b of balls) {
+      b.trail.push({ x: b.x, y: b.y });
+      if (b.trail.length > 28) b.trail.shift();
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#1e2328';
+    ctx.fillRect(0, floorY, W, H - floorY);
+    ctx.strokeStyle = '#3a4555';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, floorY);
+    ctx.lineTo(W, floorY);
+    ctx.stroke();
+
+    for (const b of balls) {
+      ctx.beginPath();
+      ctx.strokeStyle = `hsla(${b.hue}, 55%, 45%, 0.35)`;
+      ctx.lineWidth = 2;
+      for (let i = 1; i < b.trail.length; i++) {
+        const p0 = b.trail[i - 1];
+        const p1 = b.trail[i];
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+      }
+      ctx.stroke();
+
+      const grd = ctx.createRadialGradient(
+        b.x - b.r * 0.35, b.y - b.r * 0.35, 0,
+        b.x, b.y, b.r
+      );
+      grd.addColorStop(0, `hsl(${b.hue}, 55%, 52%)`);
+      grd.addColorStop(1, `hsl(${b.hue}, 45%, 28%)`);
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+  </script>
+</body>
+</html>
