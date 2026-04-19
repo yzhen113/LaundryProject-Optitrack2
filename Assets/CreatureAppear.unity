@@ -448,19 +448,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sceneFlow: 1
   firstPersonPrefab: {fileID: 5241267463746980526, guid: f2e0b7ae4dae8cf44955bccd3512b213, type: 3}
-  tableHalfExtentX: 4
-  tableHalfExtentZ: 2
+  optitrackRigidBodyIdHost: 601
+  optitrackRigidBodyIdGuest: 602
+  enableKeyboardFloorSimulation: 0
+  optitrackStreamingClient: {fileID: 2000000003}
+  tableHalfExtentX: 0.762
+  tableHalfExtentZ: 0.381
   tableTopY: 0
-  seatInset: 0.35
+  seatInset: 0.1
   seatedHostSeatIndex: 0
-  standingZoneHalfExtentX: 0.55
-  standingZoneHalfExtentZ: 0.55
+  standingZoneHalfExtentX: 0.3
+  standingZoneHalfExtentZ: 0.3
+  standingZoneMaxFractionOfTableHalf: 0.38
+  seatStandOffsetFractionOfTableHalfZ: 0.42
+  guestActivationFootprintFractionOfShortAxis: 0.38
+  guestActivationGapFractionOfShortAxis: 0.12
+  leadInActivationFootprintScale: 1.28
+  leadInActivationZoneOutlineWidth: 0.014
+  leadInSecondsBeforeCreatureAppears: 2
   hostZoneColor: {r: 0.28, g: 0.72, b: 0.95, a: 0.95}
   guestZoneColor: {r: 0.95, g: 0.62, b: 0.28, a: 0.95}
-  handPreviewSeconds: 2.1
+  handPreviewSeconds: 8
   jumpToSeatSeconds: 1.15
   demoCountdownSeconds: 16
-  creatureTableOffsetFromPlayerMeters: 0.75
+  creatureTableOffsetFromPlayerMeters: 0.2
   creatureFollowPlayerBlend: 0.06
   guestWasherNumber: 3
   guestDryerNumber: 4
@@ -474,6 +485,13 @@ MonoBehaviour:
   projectionMainCameraCreaturesOnly: 0
   creatureProjectionLayerName: CreatureProjection
   projectionTransparentClearColor: 0
+  projectionViewPaddingMeters: 0.42
+  projectionViewMarginMultiplier: 1.3
+  topDownCameraHeight: 14
+  playerPrefabUniformScale: -1
+  playerPrefabAutoScaleFactor: 0.82
+  creatureHudUniformScale: -1
+  creatureHudAutoScaleFactor: 0.52
   restartBumpInteractionKey: 114
   enableRestartBumpHotkey: 1
   restartBumpSkipsDelay: 1
@@ -492,6 +510,152 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2000000002}
+  - component: {fileID: 2000000003}
+  m_Layer: 0
+  m_Name: Client - OptiTrack
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a331805347588fe4a8161c8875d24396, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ServerAddress: 127.0.0.1
+  LocalAddress: 127.0.0.1
+  ConnectionType: 0
+  SkeletonCoordinates: 0
+  BoneNamingConvention: 0
+  DrawMarkers: 0
+  RecordOnPlay: 0
+  SkipDataDescriptions: 0
+--- !u!1 &2000000010
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2000000011}
+  - component: {fileID: 2000000012}
+  m_Layer: 0
+  m_Name: Host_OptiTrack_RB
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2000000011
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000010}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2000000012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f77bc200897df4f4483b478b598b0c51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  StreamingClient: {fileID: 2000000003}
+  RigidBodyId: 601
+  NetworkCompensation: 1
+--- !u!1 &2000000020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2000000021}
+  - component: {fileID: 2000000022}
+  m_Layer: 0
+  m_Name: Guest_OptiTrack_RB
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2000000021
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2000000022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f77bc200897df4f4483b478b598b0c51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  StreamingClient: {fileID: 2000000003}
+  RigidBodyId: 602
+  NetworkCompensation: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -500,3 +664,6 @@ SceneRoots:
   - {fileID: 1129075705}
   - {fileID: 1877558580}
   - {fileID: 1169106324}
+  - {fileID: 2000000002}
+  - {fileID: 2000000011}
+  - {fileID: 2000000021}

@@ -11,7 +11,8 @@ public class CreatureWorldHud : MonoBehaviour
     public float coreDiameterMeters = 0.42f;
     [Tooltip("Outer radius of the progress ring (world meters), outside the core sprite.")]
     public float ringRadiusMeters = 0.38f;
-    public float ringLineWidth = 0.045f;
+    [Tooltip("LineRenderer thickness for the countdown arcs (timer mode only).")]
+    public float ringArcLineWidth = 0.015f;
     public int ringSegments = 72;
     [Tooltip("Gap between core edge and ring at full emergence.")]
     public float ringGapBeyondCoreMeters = 0.03f;
@@ -73,6 +74,14 @@ public class CreatureWorldHud : MonoBehaviour
 
     bool m_timerMode;
     bool m_countdownActive;
+    bool m_countdownPaused;
+    [Tooltip("Multiplies countdown tick rate in Update: 1 = real-time; lower = slower countdown (e.g. 0.5 ≈ twice as long wall-clock to reach zero).")]
+    [Range(0.05f, 2f)]
+    public float countdownElapsedScale = 1f;
+
+    bool m_clampTimerHudToTable;
+    float m_timerClampHalfExtentX;
+    float m_timerClampHalfExtentZ;
     float m_totalCountdownSeconds = 60f;
     float m_remainingSeconds;
     float m_ringEmergenceT;
@@ -190,7 +199,9 @@ public class CreatureWorldHud : MonoBehaviour
         var lr = go.AddComponent<LineRenderer>();
         lr.loop = false;
         lr.useWorldSpace = true;
-        lr.widthMultiplier = ringLineWidth;
+        lr.widthMultiplier = 1f;
+        lr.startWidth = ringArcLineWidth;
+        lr.endWidth = ringArcLineWidth;
         lr.numCornerVertices = 2;
         lr.numCapVertices = 2;
         lr.material = new Material(Shader.Find("Sprites/Default"));
@@ -203,6 +214,12 @@ public class CreatureWorldHud : MonoBehaviour
     {
         m_elapsedArc.enabled = v;
         m_remainingArc.enabled = v;
+    }
+
+    /// <summary>When true, timer digits do not count down (e.g. lead-in host until guest sequence completes).</summary>
+    public void SetCountdownPaused(bool paused)
+    {
+        m_countdownPaused = paused;
     }
 
     public void SetTimerModeImmediate(float countdownSeconds, float washerId, float dryerId)
@@ -220,6 +237,39 @@ public class CreatureWorldHud : MonoBehaviour
         RefreshTimeDigits();
         OrientRingGapTowardPresentationAnchor();
         RebuildArcMesh(m_remainingSeconds / m_totalCountdownSeconds);
+        transform.position = ClampHudPositionOnTable(transform.position);
+    }
+
+    /// <summary>
+    /// After timer mode begins, clamps this HUD root on the tabletop so ring + timer stay over the projected table.
+    /// </summary>
+    public void SetTableBoundsForTimerClamp(float halfExtentX, float halfExtentZ)
+    {
+        m_timerClampHalfExtentX = Mathf.Max(0.02f, halfExtentX);
+        m_timerClampHalfExtentZ = Mathf.Max(0.02f, halfExtentZ);
+        m_clampTimerHudToTable = true;
+        if (m_timerMode)
+            transform.position = ClampHudPositionOnTable(transform.position);
+    }
+
+    Vector3 ClampHudPositionOnTable(Vector3 worldPos)
+    {
+        if (!m_clampTimerHudToTable || !m_timerMode)
+            return worldPos;
+
+        float s = Mathf.Max(transform.lossyScale.x, transform.lossyScale.z);
+        float outerR = Mathf.Max(ringRadiusMeters, coreDiameterMeters * 0.5f + ringGapBeyondCoreMeters) * s + 0.008f;
+
+        float hx = Mathf.Max(0.015f, m_timerClampHalfExtentX - outerR);
+        float hz = Mathf.Max(0.015f, m_timerClampHalfExtentZ - outerR);
+
+        float cx = m_tableCenterXZ.x;
+        float cz = m_tableCenterXZ.z;
+
+        float x = Mathf.Clamp(worldPos.x, cx - hx, cx + hx);
+        float z = Mathf.Clamp(worldPos.z, cz - hz, cz + hz);
+
+        return new Vector3(x, worldPos.y, z);
     }
 
     /// <summary>Table center on XZ (Y ignored) and the player used to push the HUD toward the table center.</summary>
@@ -290,6 +340,39 @@ public class CreatureWorldHud : MonoBehaviour
     {
         m_coreBumpInProgress = false;
         SetCoreSlideWorldOffset(Vector3.zero);
+    }
+
+    /// <summary>
+    /// Restore pre–guest-arrival presentation: no timer ring, creature parked from nominal table XZ (seat or player).
+    /// Used when resetting lead-in without reloading the scene.
+    /// </summary>
+    public void ResetToLeadInIdleState(Transform presentationAnchor, Vector3 tableCenterWorld, float tableSurfaceY, Vector3 nominalOnTablePlaneXZ)
+    {
+        ResetCoreSlideImmediate();
+        m_timerMode = false;
+        m_countdownActive = false;
+        m_countdownPaused = false;
+        m_follow = null;
+        m_ringEmergenceT = 0f;
+
+        if (m_ringVisualRt != null)
+            m_ringVisualRt.localScale = Vector3.one * 0.06f;
+        if (m_timeText != null)
+            m_timeText.canvasRenderer.SetAlpha(0f);
+        if (m_statusText != null)
+            m_statusText.canvasRenderer.SetAlpha(0f);
+        SetArcsVisible(false);
+
+        SetTablePresentationContext(presentationAnchor, tableCenterWorld, tableSurfaceY);
+        transform.position = PushCreatureTowardTableFromAnchor(new Vector3(nominalOnTablePlaneXZ.x, tableSurfaceY, nominalOnTablePlaneXZ.z));
+        if (m_ringVisualRt != null)
+        {
+            m_ringVisualRt.gameObject.SetActive(true);
+            m_ringVisualRt.localScale = Vector3.one * 0.06f;
+        }
+
+        if (m_textBlockRt != null)
+            m_textBlockRt.gameObject.SetActive(true);
     }
 
     /// <summary>
@@ -439,9 +522,23 @@ public class CreatureWorldHud : MonoBehaviour
         m_seatWorldSpot = seatWorld;
         m_timerMode = false;
         SetArcsVisible(false);
-        m_timeText.canvasRenderer.SetAlpha(0f);
-        m_statusText.canvasRenderer.SetAlpha(0f);
-        m_ringVisualRt.localScale = Vector3.one * 0.06f;
+        ResetCoreSlideImmediate();
+        if (m_timeText != null)
+            m_timeText.canvasRenderer.SetAlpha(0f);
+        if (m_statusText != null)
+            m_statusText.canvasRenderer.SetAlpha(0f);
+        if (m_canvasRt != null)
+            m_canvasRt.localScale = Vector3.one;
+        if (m_coreImage != null)
+            m_coreImage.rectTransform.localScale = Vector3.one;
+        if (m_ringVisualRt != null)
+        {
+            m_ringVisualRt.gameObject.SetActive(false);
+            m_ringVisualRt.localScale = Vector3.one * 0.06f;
+        }
+
+        if (m_textBlockRt != null)
+            m_textBlockRt.gameObject.SetActive(false);
 
         float t0 = Time.time;
         while (Time.time - t0 < handSeconds)
@@ -464,23 +561,22 @@ public class CreatureWorldHud : MonoBehaviour
             float u = (Time.time - t0) / dur;
             transform.position = ParabolicLerp(start, end, u, 1.35f);
             float s = 1f + 0.35f * Mathf.Sin(u * Mathf.PI);
-            m_canvasRt.localScale = Vector3.one * Mathf.Lerp(1f, s, Mathf.Sin(u * Mathf.PI));
-            m_coreImage.rectTransform.localScale = Vector3.one * Mathf.Lerp(1f, 1.12f, ElasticSquash(u));
+            if (m_canvasRt != null)
+                m_canvasRt.localScale = Vector3.one * Mathf.Lerp(1f, s, Mathf.Sin(u * Mathf.PI));
+            if (m_coreImage != null)
+                m_coreImage.rectTransform.localScale = Vector3.one;
             yield return null;
         }
 
         transform.position = end;
-        m_canvasRt.localScale = Vector3.one;
-        m_coreImage.rectTransform.localScale = Vector3.one;
+        if (m_canvasRt != null)
+            m_canvasRt.localScale = Vector3.one;
+        if (m_coreImage != null)
+            m_coreImage.rectTransform.localScale = Vector3.one;
 
         m_follow = null;
         yield return StartCoroutine(MorphToTimer(countdownSeconds, washerId, dryerId));
         m_countdownActive = true;
-    }
-
-    static float ElasticSquash(float u)
-    {
-        return Mathf.Sin(u * Mathf.PI * 2f) * (1f - u) * 0.25f;
     }
 
     static float OutBack(float x)
@@ -504,6 +600,15 @@ public class CreatureWorldHud : MonoBehaviour
         m_countdownActive = false;
         m_totalCountdownSeconds = Mathf.Max(1f, countdownSeconds);
         m_remainingSeconds = m_totalCountdownSeconds;
+        if (m_ringVisualRt != null)
+        {
+            m_ringVisualRt.gameObject.SetActive(true);
+            m_ringVisualRt.localScale = Vector3.one * 0.06f;
+        }
+
+        if (m_textBlockRt != null)
+            m_textBlockRt.gameObject.SetActive(true);
+
         SetArcsVisible(true);
         RefreshTimerTexts(washerId, dryerId);
         RefreshTimeDigits();
@@ -533,6 +638,7 @@ public class CreatureWorldHud : MonoBehaviour
         m_textBlockRt.anchoredPosition = textEnd;
         OrientRingGapTowardPresentationAnchor();
         RefreshTimeDigits();
+        transform.position = ClampHudPositionOnTable(transform.position);
     }
 
     /// <summary>
@@ -600,13 +706,15 @@ public class CreatureWorldHud : MonoBehaviour
             flatPlayer,
             followSeatVersusPlayerBlend);
         var target = PushCreatureTowardTableFromAnchor(nominal);
+        if (m_clampTimerHudToTable)
+            target = ClampHudPositionOnTable(target);
         transform.position = Vector3.Lerp(transform.position, target, Time.deltaTime * 6f);
     }
 
     void Update()
     {
-        if (!m_timerMode || !m_countdownActive) return;
-        m_remainingSeconds -= Time.deltaTime;
+        if (!m_timerMode || !m_countdownActive || m_countdownPaused) return;
+        m_remainingSeconds -= Time.deltaTime * Mathf.Max(0f, countdownElapsedScale);
         if (m_remainingSeconds < 0f) m_remainingSeconds = 0f;
         RefreshTimeDigits();
     }

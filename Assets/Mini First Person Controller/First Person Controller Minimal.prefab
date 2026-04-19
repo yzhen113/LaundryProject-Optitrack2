@@ -540,7 +540,6 @@ GameObject:
   - component: {fileID: 5239100585477912294}
   - component: {fileID: 5256384803381100468}
   - component: {fileID: 5262169347900679442}
-  - component: {fileID: 5304019296978978324}
   - component: {fileID: 5273061343101857912}
   m_Layer: 0
   m_Name: First Person Camera
@@ -617,14 +616,6 @@ Camera:
   m_StereoSeparation: 0.022
 --- !u!124 &5262169347900679442
 Behaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5242010300582068122}
-  m_Enabled: 1
---- !u!81 &5304019296978978324
-AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}

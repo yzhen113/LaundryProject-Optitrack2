@@ -59,6 +59,7 @@ public class StandingZoneOutline : MonoBehaviour
         m_lr.startColor = m_lr.endColor = lineColor;
     }
 
+    /// <summary>True if world XZ lies in the axis-aligned rectangle; Y is ignored.</summary>
     public static bool ContainsXZ(Vector3 worldPos, Vector3 zoneCenter, float hx, float hz)
     {
         return Mathf.Abs(worldPos.x - zoneCenter.x) <= hx && Mathf.Abs(worldPos.z - zoneCenter.z) <= hz;
